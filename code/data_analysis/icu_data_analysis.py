@@ -270,54 +270,10 @@ for j in range(1, lime_importances.shape[0] + 1):
 
 output_df_lime.to_csv(args.output_dir + 'icu_lime_ests_measure_' + str(args.measure) + '_est_' + str(args.estimator_type) + '.csv')
 ## -------------------------------------
-## VIM (conditional)
-## -------------------------------------
-print("Getting VIM values")
-np.random.seed(56789)
-cc_data = dg.Dataset(x_train = data.x_train[cc_all, :], y_train = data.y_train[cc_all])
-folds_outer_vim = np.random.choice(a = np.arange(2), size = cc_data.y_train.shape[0], replace = True, p = np.array([0.5, 0.5]))
-cc_data_vim_0 = dg.Dataset(x_train = cc_data.x_train[folds_outer_vim == 0, :], y_train = cc_data.y_train[folds_outer_vim == 0], x_test = None, y_test = None)
-cc_data_vim_1 = dg.Dataset(x_train = cc_data.x_train[folds_outer_vim == 1, :], y_train = cc_data.y_train[folds_outer_vim == 1], x_test = None, y_test = None)
-start = time.time()
-v_full, preds_full, ic_full, folds_full, cc_full = vimpy.cv_predictiveness(cc_data_vim_1.x_train, cc_data_vim_1.y_train, S = np.arange(p), measure = measure_func, pred_func = ensemble, V = 5, stratified = False)
-for s in range(p):
-    indices = np.delete(np.arange(p), s)
-    if "tree" in args.estimator_type:
-        cv_small = GridSearchCV(XGBRegressor(objective = objective_function, max_depth = 4, verbosity = 0, reg_lambda = 0, learning_rate = 0.001), param_grid = param_grid, cv = 5)
-        cv_small.fit(cc_data_vim_0.x_train[:, indices], np.ravel(cc_data_vim_0.y_train))
-        ensemble_s = XGBRegressor(objective = objective_function, max_depth = 4, verbosity = 0, reg_lambda = 0, learning_rate = 0.001, n_estimators = cv_small.best_params_['n_estimators'])
-    else:
-        cv_small = GridSearchCV(mlp_class(activation = 'relu', solver = 'adam', max_iter = 2000, alpha = 0.1), param_grid = param_grid, cv = 5)
-        cv_small.fit(cc_data_vim_0.x_train[:, indices], np.ravel(cc_data_vim_0.y_train))
-        est_lst_cv_s = [('nn_' + str(x), mlp_class(activation = 'relu', solver = 'adam', max_iter = 2000, alpha = 1e-1, hidden_layer_sizes = cv_small.best_params_['hidden_layer_sizes'], shuffle = True, random_state = x)) for x in range(num_est)]
-        if args.measure == "auc":
-            ensemble_s = ensemble_method(est_lst_cv_s, cv = 2, stack_method = stack_method)
-        else:
-            ensemble_s = ensemble_method(est_lst_cv_s, cv = 2)
-    v_redu, preds_redu, ic_redu, folds_redu, cc_redu = vimpy.cv_predictiveness(cc_data_vim_0.x_train, cc_data_vim_0.y_train, S = indices, measure = measure_func, pred_func = ensemble_s, V = 5, stratified = False)
-    these_folds = [folds_outer_vim, folds_full, folds_redu]
-    vimp_cv = vimpy.cv_vim(y = cc_data.y_train, x = cc_data.x_train, s = s, f = preds_full, r = preds_redu, V = 5, measure_type = args.measure, na_rm = True, folds = these_folds)
-    ## get the point estimate
-    vimp_cv.get_point_est()
-    ## get the standard error
-    vimp_cv.get_influence_function()
-    vimp_cv.get_se()
-    ## get a confidence interval
-    vimp_cv.get_ci()
-    ## do a hypothesis test, compute p-value
-    vimp_cv.hypothesis_test(alpha = 0.05, delta = 0)
-    ## display estimates, etc.
-    output_df_vim.iloc[s] = np.array([s + 1, vimp_cv.vimp_, vimp_cv.se_, np.ravel(vimp_cv.ci_)[0], np.ravel(vimp_cv.ci_)[1], vimp_cv.p_value_, vimp_cv.hyp_test_, args.measure, np.nan]).reshape(1, len(cols))
-
-
-end = time.time()
-print("Computing VIM values took " + str(end - start) + " seconds")
-output_df_vim.to_csv(args.output_dir + 'icu_vim_ests_measure_' + str(args.measure) + '_est_' + str(args.estimator_type) + '.csv')
-## -------------------------------------
 ## end, save results
 ## -------------------------------------
 
 ## concatenate dfs together
-all_output_df = pd.concat([output_df, output_df_mean_abs_shap, output_df_lime, output_df_vim], ignore_index = True)
+all_output_df = pd.concat([output_df, output_df_mean_abs_shap, output_df_lime], ignore_index = True)
 ## save it off
 all_output_df.to_csv(args.output_dir + 'icu_data_analysis_measure_' + str(args.measure) + '_est_' + str(args.estimator_type) + '.csv')
