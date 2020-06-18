@@ -1,6 +1,6 @@
 # `spvim_supplementary`: Supplementary materials for the SPVIM paper
 
-This repository contains the supplementary material for and code to reproduce the analyses in ["Efficient inference on population feature importance using Shapley values"](arXiv link here) by Williamson and Feng (*arXiv*, 2020). All analyses were implemented in the freely available software packages Python and R; specifically, Python version 3.7.4 and R version 3.6.3.
+This repository contains the supplementary material for and code to reproduce the analyses in ["Efficient nonparametric statistical inference on population feature importance using Shapley values"](https://arxiv.org/abs/2006.09481) by Williamson and Feng (*arXiv*, 2020; to appear in the Proceedings of the Thirty-seventh International Conference on Machine Learning [ICML 2020]). All analyses were implemented in the freely available software packages Python and R; specifically, Python version 3.7.4 and R version 3.6.3.
 
 This README file provides an overview of the code available in the repository.
 
